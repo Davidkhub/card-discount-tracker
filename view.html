@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>카드 할인 기록 - 기록 · 캘린더</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <h1>카드 할인 기록</h1>
+  <p class="desc">누적된 기록을 필터·캘린더로 확인할 수 있습니다.</p>
+
+  <div class="nav">
+    <a href="index.html">입력</a>
+    <a href="view.html" class="active">기록 · 캘린더</a>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="list">기록 목록</button>
+    <button class="tab-btn" data-tab="calendar">카드 캘린더</button>
+  </div>
+
+  <!-- 기록 목록 탭 -->
+  <div id="tab-list" class="tab-panel">
+    <div class="filters">
+      <div>
+        <label>날짜</label>
+        <select id="filter-date"><option value="">전체</option></select>
+      </div>
+      <div>
+        <label>쇼핑몰</label>
+        <select id="filter-site">
+          <option value="">전체</option>
+          <option>CJ온스타일</option>
+          <option>Hmall</option>
+          <option>롯데홈쇼핑</option>
+          <option>기타</option>
+        </select>
+      </div>
+      <div class="grow"></div>
+      <div style="min-width:auto;">
+        <button class="util-btn" id="btn-export">내보내기(JSON)</button>
+      </div>
+      <div style="min-width:auto;">
+        <button class="util-btn" id="btn-import">가져오기</button>
+        <input type="file" id="import-file" accept="application/json" style="display:none">
+      </div>
+    </div>
+    <div id="list-wrap"></div>
+  </div>
+
+  <!-- 캘린더 탭 -->
+  <div id="tab-calendar" class="tab-panel" style="display:none">
+    <div class="filters">
+      <div>
+        <label>쇼핑몰</label>
+        <select id="cal-site">
+          <option>CJ온스타일</option>
+          <option>Hmall</option>
+          <option>롯데홈쇼핑</option>
+          <option>기타</option>
+        </select>
+      </div>
+      <div>
+        <label>월</label>
+        <input type="month" id="cal-month">
+      </div>
+    </div>
+    <div id="cal-wrap"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="storage.js"></script>
+<script>
+document.getElementById('cal-month').value = todayStr().slice(0,7);
+
+let entries = [];
+
+// 탭 전환
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.style.display = 'none');
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).style.display = 'block';
+    if(btn.dataset.tab === 'calendar') renderCalendar();
+  });
+});
+
+// 필터
+document.getElementById('filter-date').addEventListener('change', renderList);
+document.getElementById('filter-site').addEventListener('change', renderList);
+document.getElementById('cal-site').addEventListener('change', renderCalendar);
+document.getElementById('cal-month').addEventListener('change', renderCalendar);
+
+// 내보내기/가져오기
+document.getElementById('btn-export').addEventListener('click', async () => {
+  const json = await store.exportJson();
+  const blob = new Blob([json], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'card-discount-' + todayStr() + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+});
+document.getElementById('btn-import').addEventListener('click', () => {
+  document.getElementById('import-file').click();
+});
+document.getElementById('import-file').addEventListener('change', (ev) => {
+  const file = ev.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = async e => {
+    try{
+      await store.importJson(e.target.result);
+      await refreshAll();
+      showToast('가져오기 완료');
+    }catch(err){
+      console.error(err);
+      showToast('가져오기 실패: ' + (err.message || '형식 오류'));
+    }
+  };
+  reader.readAsText(file);
+  ev.target.value = '';
+});
+
+async function refreshAll(){
+  document.getElementById('list-wrap').innerHTML = '<div class="empty">불러오는 중...</div>';
+  entries = await store.load();
+  renderFilterOptions();
+  renderList();
+  renderCalendar();
+}
+
+function renderFilterOptions(){
+  const sel = document.getElementById('filter-date');
+  const cur = sel.value;
+  const dates = [...new Set(entries.map(e => e.date))].sort().reverse();
+  let html = '<option value="">전체</option>';
+  dates.forEach(d => { html += '<option value="' + d + '">' + d + '</option>'; });
+  sel.innerHTML = html;
+  sel.value = dates.includes(cur) ? cur : '';
+}
+
+function renderList(){
+  const fDate = document.getElementById('filter-date').value;
+  const fSite = document.getElementById('filter-site').value;
+  let rows = entries.filter(e => (!fDate || e.date === fDate) && (!fSite || e.site === fSite));
+  rows.sort((a,b) => b.date.localeCompare(a.date));
+
+  const wrap = document.getElementById('list-wrap');
+  if(rows.length === 0){
+    wrap.innerHTML = '<div class="empty">조건에 맞는 기록이 없습니다.</div>';
+    return;
+  }
+  let html = '<table><thead><tr>';
+  html += '<th>날짜</th><th>쇼핑몰</th><th>행사 구분</th><th>간편결제 결합여부</th><th>카드</th><th>할인율</th><th>할인한도(만원)</th><th>비고</th><th></th>';
+  html += '</tr></thead><tbody>';
+  rows.forEach(r => {
+    html += '<tr>';
+    html += '<td>' + escapeHtml(r.date) + '</td>';
+    html += '<td>' + escapeHtml(r.site) + '</td>';
+    html += '<td><span class="tag ' + (r.kind === '전사' ? 'kind-jeonsa' : 'kind-item') + '">' + escapeHtml(r.kind) + '</span></td>';
+    html += '<td>' + (r.pay && r.pay !== '결합없음' ? '<span class="tag pay">' + escapeHtml(r.pay) + '</span>' : '결합없음') + '</td>';
+    html += '<td>' + escapeHtml(r.card) + '</td>';
+    html += '<td>' + escapeHtml(r.rate) + '</td>';
+    html += '<td>' + (r.limit ? escapeHtml(r.limit) : '-') + '</td>';
+    html += '<td>' + escapeHtml(r.memo || '-') + '</td>';
+    html += '<td><button class="del" data-id="' + r.id + '">삭제</button></td>';
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+
+  wrap.querySelectorAll('.del').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if(!confirm('이 기록을 삭제하시겠습니까?')) return;
+      await store.remove(btn.dataset.id);
+      await refreshAll();
+    });
+  });
+}
+
+function renderCalendar(){
+  const site = document.getElementById('cal-site').value;
+  const monthVal = document.getElementById('cal-month').value;
+  const wrap = document.getElementById('cal-wrap');
+  if(!monthVal){ wrap.innerHTML = ''; return; }
+  const parts = monthVal.split('-').map(Number);
+  const year = parts[0], month = parts[1];
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const dow = ['일','월','화','수','목','금','토'];
+
+  const dayData = [];
+  for(let d = 1; d <= daysInMonth; d++){
+    const dateStr = year + '-' + String(month).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+    const dayEntries = entries.filter(e => e.site === site && e.date === dateStr);
+    dayData.push({
+      day: d,
+      dow: dow[new Date(year, month-1, d).getDay()],
+      jeonsa: dayEntries.filter(e => e.kind === '전사'),
+      item: dayEntries.filter(e => e.kind === '상품별')
+    });
+  }
+
+  // 7일씩 묶기
+  const chunks = [];
+  for(let i = 0; i < dayData.length; i += 7){
+    chunks.push(dayData.slice(i, i+7));
+  }
+
+  let html = '';
+  chunks.forEach(chunk => {
+    // 빈 셀 채우기
+    while(chunk.length < 7) chunk.push(null);
+
+    html += '<table class="cal-table">';
+    // 날짜 행
+    html += '<tr><td class="cal-label">날짜</td>';
+    chunk.forEach(c => {
+      html += '<td class="cal-daynum">' + (c ? c.day + '일' : '') + '</td>';
+    });
+    html += '</tr>';
+    // 요일 행
+    html += '<tr><td class="cal-label">요일</td>';
+    chunk.forEach(c => {
+      html += '<td class="cal-dow">' + (c ? c.dow : '') + '</td>';
+    });
+    html += '</tr>';
+    // 전사 행
+    html += '<tr><td class="cal-label">전사</td>';
+    chunk.forEach(c => {
+      if(!c){ html += '<td></td>'; return; }
+      const cells = c.jeonsa.map(e => '<div class="cal-line jeonsa">' + escapeHtml(e.card) + ' ' + escapeHtml(e.rate.replace('%','')) + '</div>').join('');
+      html += '<td>' + (cells || '-') + '</td>';
+    });
+    html += '</tr>';
+    // 상품별 행
+    html += '<tr><td class="cal-label">상품별</td>';
+    chunk.forEach(c => {
+      if(!c){ html += '<td></td>'; return; }
+      const cells = c.item.map(e => '<div class="cal-line item">' + escapeHtml(e.card) + ' ' + escapeHtml(e.rate.replace('%','')) + '</div>').join('');
+      html += '<td>' + (cells || '-') + '</td>';
+    });
+    html += '</tr>';
+    html += '</table>';
+  });
+  wrap.innerHTML = html;
+}
+
+refreshAll();
+</script>
+</body>
+</html>
