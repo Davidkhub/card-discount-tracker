@@ -211,19 +211,21 @@ function renderCalendar(){
     e.kind === '전사' &&
     mainCards.indexOf(e.card) !== -1
   );
+  const totalCount = mainEvents.length;
+  const totalRatio = Math.round(totalCount / daysInMonth * 100);
   const rates = ['5%','7%','8%','10%'];
-  const rateStats = rates.map(r => {
-    const count = mainEvents.filter(e => e.rate === r).length;
-    const ratio = Math.round(count / daysInMonth * 100);
-    return {rate: r, count, ratio};
-  });
+  const rateDays = rates.map(r => ({
+    rate: r,
+    days: mainEvents.filter(e => e.rate === r).length
+  }));
 
   let summaryHtml = '<div class="cal-summary">';
   summaryHtml += '<div class="cal-summary-title">메인카드사 행사 비중';
   summaryHtml += '<span class="cal-summary-note">(' + mainCards.join(', ') + ' / ' + daysInMonth + '일 기준)</span></div>';
+  summaryHtml += '<div class="cal-summary-total"><span class="stat-val-big">' + totalRatio + '%</span> <span class="cal-summary-note">(' + totalCount + '건 / ' + daysInMonth + '일)</span></div>';
   summaryHtml += '<div class="cal-summary-rows">';
-  rateStats.forEach(s => {
-    summaryHtml += '<div class="stat-row"><span class="stat-rate">' + s.rate + '</span> <span class="stat-val">' + s.ratio + '%</span></div>';
+  rateDays.forEach(s => {
+    summaryHtml += '<div class="stat-row"><span class="stat-rate">' + s.rate + '</span> <span class="stat-val">' + s.days + '일</span></div>';
   });
   summaryHtml += '</div></div>';
   summaryEl.innerHTML = summaryHtml;
