@@ -48,24 +48,6 @@
         <input type="file" id="import-file" accept="application/json" style="display:none">
       </div>
     </div>
-    <div class="filters">
-      <div>
-        <label>정렬</label>
-        <select id="filter-sort">
-          <option value="date_desc">날짜 (최신순)</option>
-          <option value="date_asc">날짜 (오래된순)</option>
-          <option value="site">쇼핑몰순</option>
-          <option value="card">카드사순</option>
-          <option value="rate_desc">할인율 (높은순)</option>
-          <option value="rate_asc">할인율 (낮은순)</option>
-          <option value="limit_desc">할인한도 (큰순)</option>
-          <option value="limit_asc">할인한도 (작은순)</option>
-          <option value="kind">행사 구분 (전사→상품별)</option>
-          <option value="pay">간편결제 결합순</option>
-        </select>
-      </div>
-      <div class="grow"></div>
-    </div>
     <div id="list-wrap"></div>
   </div>
 
@@ -113,7 +95,10 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 // 필터
 document.getElementById('filter-date').addEventListener('change', renderList);
 document.getElementById('filter-site').addEventListener('change', renderList);
-document.getElementById('filter-sort').addEventListener('change', renderList);
+
+// 정렬 상태 (컬럼 헤더 클릭)
+let sortField = 'date';
+let sortDir = 'desc';
 document.getElementById('cal-site').addEventListener('change', renderCalendar);
 document.getElementById('cal-month').addEventListener('change', renderCalendar);
 
@@ -170,7 +155,6 @@ function renderFilterOptions(){
 function renderList(){
   const fDate = document.getElementById('filter-date').value;
   const fSite = document.getElementById('filter-site').value;
-  const fSort = document.getElementById('filter-sort').value;
   let rows = entries.filter(e => (!fDate || e.date === fDate) && (!fSite || e.site === fSite));
 
   const cardOrder = ['신한','국민','삼성','롯데','현대','비씨','농협','하나','우리'];
@@ -178,24 +162,25 @@ function renderList(){
   const kindOrder = ['전사','상품별'];
   const payOrder = ['카카오페이','토스페이','결합없음'];
   const idx = (arr, v) => { const i = arr.indexOf(v); return i === -1 ? 999 : i; };
-  const secondary = (a,b) => b.date.localeCompare(a.date); // 2차 정렬: 최신 날짜
 
-  rows.sort((a,b) => {
-    let r = 0;
-    switch(fSort){
-      case 'date_asc': r = a.date.localeCompare(b.date); break;
-      case 'site': r = a.site.localeCompare(b.site, 'ko'); break;
-      case 'card': r = idx(cardOrder, a.card) - idx(cardOrder, b.card); break;
-      case 'rate_desc': r = idx(rateOrder, b.rate) - idx(rateOrder, a.rate); break;
-      case 'rate_asc': r = idx(rateOrder, a.rate) - idx(rateOrder, b.rate); break;
-      case 'limit_desc': r = (parseFloat(b.limit)||0) - (parseFloat(a.limit)||0); break;
-      case 'limit_asc': r = (parseFloat(a.limit)||0) - (parseFloat(b.limit)||0); break;
-      case 'kind': r = idx(kindOrder, a.kind) - idx(kindOrder, b.kind); break;
-      case 'pay': r = idx(payOrder, a.pay) - idx(payOrder, b.pay); break;
-      case 'date_desc':
-      default: r = b.date.localeCompare(a.date); break;
+  const cmp = (a, b) => {
+    switch(sortField){
+      case 'date': return a.date.localeCompare(b.date);
+      case 'site': return a.site.localeCompare(b.site, 'ko');
+      case 'kind': return idx(kindOrder, a.kind) - idx(kindOrder, b.kind);
+      case 'pay': return idx(payOrder, a.pay) - idx(payOrder, b.pay);
+      case 'card': return idx(cardOrder, a.card) - idx(cardOrder, b.card);
+      case 'rate': return idx(rateOrder, a.rate) - idx(rateOrder, b.rate);
+      case 'limit': return (parseFloat(a.limit)||0) - (parseFloat(b.limit)||0);
+      default: return 0;
     }
-    return r !== 0 ? r : secondary(a,b);
+  };
+  rows.sort((a,b) => {
+    let r = cmp(a,b);
+    if(sortDir === 'desc') r = -r;
+    // 2차 정렬: 최신 날짜
+    if(r === 0 && sortField !== 'date') r = b.date.localeCompare(a.date);
+    return r;
   });
 
   const wrap = document.getElementById('list-wrap');
@@ -203,8 +188,19 @@ function renderList(){
     wrap.innerHTML = '<div class="empty">조건에 맞는 기록이 없습니다.</div>';
     return;
   }
+
+  const arrow = f => sortField === f ? (sortDir === 'asc' ? ' ▲' : ' ▼') : '';
+  const th = (label, field) => '<th class="sortable' + (sortField === field ? ' active' : '') + '" data-sort="' + field + '">' + label + '<span class="sort-arrow">' + arrow(field) + '</span></th>';
+
   let html = '<table><thead><tr>';
-  html += '<th>날짜</th><th>쇼핑몰</th><th>행사 구분</th><th>간편결제 결합여부</th><th>카드</th><th>할인율</th><th>할인한도(만원)</th><th>비고</th><th></th>';
+  html += th('날짜', 'date');
+  html += th('쇼핑몰', 'site');
+  html += th('행사 구분', 'kind');
+  html += th('간편결제 결합여부', 'pay');
+  html += th('카드', 'card');
+  html += th('할인율', 'rate');
+  html += th('할인한도(만원)', 'limit');
+  html += '<th>비고</th><th></th>';
   html += '</tr></thead><tbody>';
   rows.forEach(r => {
     html += '<tr>';
@@ -221,6 +217,20 @@ function renderList(){
   });
   html += '</tbody></table>';
   wrap.innerHTML = html;
+
+  // 헤더 클릭 정렬
+  wrap.querySelectorAll('th.sortable').forEach(el => {
+    el.addEventListener('click', () => {
+      const f = el.dataset.sort;
+      if(sortField === f){
+        sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+      }else{
+        sortField = f;
+        sortDir = f === 'date' ? 'desc' : 'asc';
+      }
+      renderList();
+    });
+  });
 
   wrap.querySelectorAll('.del').forEach(btn => {
     btn.addEventListener('click', async () => {
