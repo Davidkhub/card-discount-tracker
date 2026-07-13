@@ -48,6 +48,24 @@
         <input type="file" id="import-file" accept="application/json" style="display:none">
       </div>
     </div>
+    <div class="filters">
+      <div>
+        <label>정렬</label>
+        <select id="filter-sort">
+          <option value="date_desc">날짜 (최신순)</option>
+          <option value="date_asc">날짜 (오래된순)</option>
+          <option value="site">쇼핑몰순</option>
+          <option value="card">카드사순</option>
+          <option value="rate_desc">할인율 (높은순)</option>
+          <option value="rate_asc">할인율 (낮은순)</option>
+          <option value="limit_desc">할인한도 (큰순)</option>
+          <option value="limit_asc">할인한도 (작은순)</option>
+          <option value="kind">행사 구분 (전사→상품별)</option>
+          <option value="pay">간편결제 결합순</option>
+        </select>
+      </div>
+      <div class="grow"></div>
+    </div>
     <div id="list-wrap"></div>
   </div>
 
@@ -95,6 +113,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 // 필터
 document.getElementById('filter-date').addEventListener('change', renderList);
 document.getElementById('filter-site').addEventListener('change', renderList);
+document.getElementById('filter-sort').addEventListener('change', renderList);
 document.getElementById('cal-site').addEventListener('change', renderCalendar);
 document.getElementById('cal-month').addEventListener('change', renderCalendar);
 
@@ -151,8 +170,33 @@ function renderFilterOptions(){
 function renderList(){
   const fDate = document.getElementById('filter-date').value;
   const fSite = document.getElementById('filter-site').value;
+  const fSort = document.getElementById('filter-sort').value;
   let rows = entries.filter(e => (!fDate || e.date === fDate) && (!fSite || e.site === fSite));
-  rows.sort((a,b) => b.date.localeCompare(a.date));
+
+  const cardOrder = ['신한','국민','삼성','롯데','현대','비씨','농협','하나','우리'];
+  const rateOrder = ['5%','7%','8%','10%'];
+  const kindOrder = ['전사','상품별'];
+  const payOrder = ['카카오페이','토스페이','결합없음'];
+  const idx = (arr, v) => { const i = arr.indexOf(v); return i === -1 ? 999 : i; };
+  const secondary = (a,b) => b.date.localeCompare(a.date); // 2차 정렬: 최신 날짜
+
+  rows.sort((a,b) => {
+    let r = 0;
+    switch(fSort){
+      case 'date_asc': r = a.date.localeCompare(b.date); break;
+      case 'site': r = a.site.localeCompare(b.site, 'ko'); break;
+      case 'card': r = idx(cardOrder, a.card) - idx(cardOrder, b.card); break;
+      case 'rate_desc': r = idx(rateOrder, b.rate) - idx(rateOrder, a.rate); break;
+      case 'rate_asc': r = idx(rateOrder, a.rate) - idx(rateOrder, b.rate); break;
+      case 'limit_desc': r = (parseFloat(b.limit)||0) - (parseFloat(a.limit)||0); break;
+      case 'limit_asc': r = (parseFloat(a.limit)||0) - (parseFloat(b.limit)||0); break;
+      case 'kind': r = idx(kindOrder, a.kind) - idx(kindOrder, b.kind); break;
+      case 'pay': r = idx(payOrder, a.pay) - idx(payOrder, b.pay); break;
+      case 'date_desc':
+      default: r = b.date.localeCompare(a.date); break;
+    }
+    return r !== 0 ? r : secondary(a,b);
+  });
 
   const wrap = document.getElementById('list-wrap');
   if(rows.length === 0){
