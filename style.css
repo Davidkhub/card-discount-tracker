@@ -50,6 +50,7 @@ tr:last-child td{border-bottom:none;}
 .tag.pay{background:#EFEAE0;color:#5B5748;}
 .tag.pay-kakao{background:#FEE500;color:#3C1E1E;}
 .tag.pay-toss{background:#0064FF;color:#FFFFFF;}
+.tag.pay-gs{background:#00A2E5;color:#FFFFFF;}
 .del{background:none;border:none;color:var(--sub);font-size:12px;}
 .del:hover{color:var(--accent);}
 .empty{color:var(--sub);font-size:13px;text-align:center;padding:30px 0;}
