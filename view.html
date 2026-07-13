@@ -69,6 +69,7 @@
         <input type="month" id="cal-month">
       </div>
     </div>
+    <div id="cal-summary"></div>
     <div id="cal-wrap"></div>
   </div>
 </div>
@@ -190,11 +191,42 @@ function renderCalendar(){
   const site = document.getElementById('cal-site').value;
   const monthVal = document.getElementById('cal-month').value;
   const wrap = document.getElementById('cal-wrap');
-  if(!monthVal){ wrap.innerHTML = ''; return; }
+  const summaryEl = document.getElementById('cal-summary');
+  if(!monthVal){ wrap.innerHTML = ''; summaryEl.innerHTML = ''; return; }
   const parts = monthVal.split('-').map(Number);
   const year = parts[0], month = parts[1];
   const daysInMonth = new Date(year, month, 0).getDate();
   const dow = ['일','월','화','수','목','금','토'];
+
+  // 메인카드사 정의 (쇼핑몰별 추가 카드 포함)
+  const baseMain = ['신한','삼성','국민'];
+  const mallExtra = {'롯데홈쇼핑':'롯데','Hmall':'현대','현대홈쇼핑':'현대'};
+  const mainCards = mallExtra[site] ? baseMain.concat([mallExtra[site]]) : baseMain;
+
+  // 이번 달 메인카드사 전사 행사 필터링
+  const monthPrefix = year + '-' + String(month).padStart(2,'0');
+  const mainEvents = entries.filter(e =>
+    e.site === site &&
+    e.date.startsWith(monthPrefix) &&
+    e.kind === '전사' &&
+    mainCards.indexOf(e.card) !== -1
+  );
+  const rates = ['5%','7%','8%','10%'];
+  const rateStats = rates.map(r => {
+    const count = mainEvents.filter(e => e.rate === r).length;
+    const ratio = Math.round(count / daysInMonth * 100);
+    return {rate: r, count, ratio};
+  });
+
+  let summaryHtml = '<div class="cal-summary">';
+  summaryHtml += '<div class="cal-summary-title">메인카드사 행사 비중';
+  summaryHtml += '<span class="cal-summary-note">(' + mainCards.join(', ') + ' / ' + daysInMonth + '일 기준)</span></div>';
+  summaryHtml += '<div class="cal-summary-rows">';
+  rateStats.forEach(s => {
+    summaryHtml += '<div class="stat-row"><span class="stat-rate">' + s.rate + '</span> <span class="stat-val">' + s.ratio + '%</span></div>';
+  });
+  summaryHtml += '</div></div>';
+  summaryEl.innerHTML = summaryHtml;
 
   const dayData = [];
   for(let d = 1; d <= daysInMonth; d++){
