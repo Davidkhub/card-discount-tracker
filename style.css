@@ -39,6 +39,10 @@ button{cursor:pointer;font-family:inherit;}
 table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden;font-size:13px;}
 th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;}
 th{background:#F1EEE6;color:var(--sub);font-weight:600;font-size:11px;}
+th.sortable{cursor:pointer;user-select:none;transition:background .1s, color .1s;}
+th.sortable:hover{color:var(--ink);background:#E8E4D9;}
+th.sortable.active{color:var(--accent);}
+.sort-arrow{margin-left:2px;font-size:10px;}
 tr:last-child td{border-bottom:none;}
 .tag{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600;display:inline-block;}
 .tag.kind-jeonsa{background:var(--tag1-bg);color:var(--tag1);}
