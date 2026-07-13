@@ -35,6 +35,7 @@
           <option>CJ온스타일</option>
           <option>Hmall</option>
           <option>롯데홈쇼핑</option>
+          <option>GSSHOP</option>
           <option>기타</option>
         </select>
       </div>
@@ -59,6 +60,7 @@
           <option>CJ온스타일</option>
           <option>Hmall</option>
           <option>롯데홈쇼핑</option>
+          <option>GSSHOP</option>
           <option>기타</option>
         </select>
       </div>
@@ -164,7 +166,7 @@ function renderList(){
     html += '<td>' + escapeHtml(r.date) + '</td>';
     html += '<td>' + escapeHtml(r.site) + '</td>';
     html += '<td><span class="tag ' + (r.kind === '전사' ? 'kind-jeonsa' : 'kind-item') + '">' + escapeHtml(r.kind) + '</span></td>';
-    html += '<td>' + (r.pay && r.pay !== '결합없음' ? '<span class="tag pay">' + escapeHtml(r.pay) + '</span>' : '결합없음') + '</td>';
+    html += '<td>' + (r.pay === '카카오페이' ? '<span class="tag pay-kakao">카카오페이</span>' : r.pay === '토스페이' ? '<span class="tag pay-toss">토스페이</span>' : '결합없음') + '</td>';
     html += '<td>' + escapeHtml(r.card) + '</td>';
     html += '<td>' + escapeHtml(r.rate) + '</td>';
     html += '<td>' + (r.limit ? escapeHtml(r.limit) : '-') + '</td>';
@@ -217,6 +219,14 @@ function renderCalendar(){
     // 빈 셀 채우기
     while(chunk.length < 7) chunk.push(null);
 
+    const payPrefix = p => p === '카카오페이' ? 'KP' : (p === '토스페이' ? 'TP' : '');
+    const cardClass = {
+      '신한':'card-shinhan','국민':'card-kb','삼성':'card-samsung',
+      '롯데':'card-lotte','현대':'card-hyundai','비씨':'card-bc',
+      '농협':'card-nh','하나':'card-hana','우리':'card-woori'
+    };
+    const lineClass = (row, card) => 'cal-line ' + row + ' ' + (cardClass[card] || '');
+
     html += '<table class="cal-table">';
     // 날짜 행
     html += '<tr><td class="cal-label">날짜</td>';
@@ -234,7 +244,7 @@ function renderCalendar(){
     html += '<tr><td class="cal-label">전사</td>';
     chunk.forEach(c => {
       if(!c){ html += '<td></td>'; return; }
-      const cells = c.jeonsa.map(e => '<div class="cal-line jeonsa">' + escapeHtml(e.card) + ' ' + escapeHtml(e.rate.replace('%','')) + '</div>').join('');
+      const cells = c.jeonsa.map(e => '<div class="' + lineClass('jeonsa', e.card) + '">' + escapeHtml(payPrefix(e.pay) + e.card) + ' ' + escapeHtml(e.rate.replace('%','')) + '</div>').join('');
       html += '<td>' + (cells || '-') + '</td>';
     });
     html += '</tr>';
@@ -242,7 +252,7 @@ function renderCalendar(){
     html += '<tr><td class="cal-label">상품별</td>';
     chunk.forEach(c => {
       if(!c){ html += '<td></td>'; return; }
-      const cells = c.item.map(e => '<div class="cal-line item">' + escapeHtml(e.card) + ' ' + escapeHtml(e.rate.replace('%','')) + '</div>').join('');
+      const cells = c.item.map(e => '<div class="' + lineClass('item', e.card) + '">' + escapeHtml(payPrefix(e.pay) + e.card) + ' ' + escapeHtml(e.rate.replace('%','')) + '</div>').join('');
       html += '<td>' + (cells || '-') + '</td>';
     });
     html += '</tr>';
