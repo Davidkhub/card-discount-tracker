@@ -67,4 +67,12 @@ tr:last-child td{border-bottom:none;}
 .cal-line.card-nh{color:#00A54F;}
 .cal-line.card-hana{color:#009490;}
 .cal-line.card-woori{color:#0075C9;}
+
+.cal-summary{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin-bottom:14px;}
+.cal-summary-title{font-size:13px;font-weight:700;margin-bottom:8px;color:var(--ink);}
+.cal-summary-note{font-size:11px;color:var(--sub);font-weight:400;margin-left:6px;}
+.cal-summary-rows{display:flex;gap:24px;flex-wrap:wrap;}
+.stat-row{display:flex;align-items:baseline;gap:6px;}
+.stat-rate{font-size:12px;color:var(--sub);font-weight:600;}
+.stat-val{font-size:15px;font-weight:700;color:var(--accent);}
 .cal-label{background:#F1EEE6;color:var(--sub);font-weight:600;font-size:11px;text-align:right;padding:6px 8px;width:56px;}
