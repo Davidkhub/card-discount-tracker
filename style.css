@@ -44,6 +44,8 @@ tr:last-child td{border-bottom:none;}
 .tag.kind-jeonsa{background:var(--tag1-bg);color:var(--tag1);}
 .tag.kind-item{background:var(--tag2-bg);color:var(--tag2);}
 .tag.pay{background:#EFEAE0;color:#5B5748;}
+.tag.pay-kakao{background:#FEE500;color:#3C1E1E;}
+.tag.pay-toss{background:#0064FF;color:#FFFFFF;}
 .del{background:none;border:none;color:var(--sub);font-size:12px;}
 .del:hover{color:var(--accent);}
 .empty{color:var(--sub);font-size:13px;text-align:center;padding:30px 0;}
@@ -52,7 +54,17 @@ tr:last-child td{border-bottom:none;}
 .cal-table td{vertical-align:top;text-align:center;font-size:12px;padding:6px 4px;}
 .cal-daynum{font-weight:700;font-size:13px;}
 .cal-dow{color:var(--sub);font-size:11px;}
-.cal-line{font-size:11px;padding:1px 0;}
+.cal-line{font-size:11px;padding:1px 0;font-weight:600;}
 .cal-line.jeonsa{color:var(--tag1);}
 .cal-line.item{color:var(--tag2);}
+/* 카드사 브랜드 컬러 (전사/상품별 색을 override) */
+.cal-line.card-shinhan{color:#0046FF;}
+.cal-line.card-kb{color:#B37500;}
+.cal-line.card-samsung{color:#1428A0;}
+.cal-line.card-lotte{color:#E60013;}
+.cal-line.card-hyundai{color:#000000;}
+.cal-line.card-bc{color:#E7472A;}
+.cal-line.card-nh{color:#00A54F;}
+.cal-line.card-hana{color:#009490;}
+.cal-line.card-woori{color:#0075C9;}
 .cal-label{background:#F1EEE6;color:var(--sub);font-weight:600;font-size:11px;text-align:right;padding:6px 8px;width:56px;}
