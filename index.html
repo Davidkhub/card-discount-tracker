@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>카드 할인 기록 - 입력</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <h1>카드 할인 기록</h1>
+  <p class="desc">스크래핑 결과를 한 건씩 입력하면 기기에 누적 저장됩니다.</p>
+
+  <div class="nav">
+    <a href="index.html" class="active">입력</a>
+    <a href="view.html">기록 · 캘린더</a>
+  </div>
+
+  <form id="f">
+    <div class="row">
+      <div>
+        <label>날짜</label>
+        <input type="date" id="f-date" required>
+      </div>
+      <div>
+        <label>쇼핑몰</label>
+        <select id="f-site">
+          <option>CJ온스타일</option>
+          <option>Hmall</option>
+          <option>롯데홈쇼핑</option>
+          <option>기타</option>
+        </select>
+      </div>
+      <div>
+        <label>행사 구분</label>
+        <select id="f-kind">
+          <option value="전사">전사</option>
+          <option value="상품별">상품별</option>
+        </select>
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>간편결제 결합여부</label>
+        <select id="f-pay">
+          <option>결합없음</option>
+          <option>토스페이</option>
+          <option>카카오페이</option>
+        </select>
+      </div>
+      <div>
+        <label>카드</label>
+        <select id="f-card">
+          <option>신한</option>
+          <option>국민</option>
+          <option>삼성</option>
+          <option>롯데</option>
+          <option>현대</option>
+          <option>비씨</option>
+          <option>농협</option>
+          <option>하나</option>
+          <option>우리</option>
+        </select>
+      </div>
+      <div>
+        <label>할인율</label>
+        <select id="f-rate">
+          <option>5%</option>
+          <option>7%</option>
+          <option>8%</option>
+          <option>10%</option>
+        </select>
+      </div>
+      <div>
+        <label>할인한도(만원)</label>
+        <input type="number" id="f-limit" placeholder="예: 5" min="0" step="0.1">
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>비고 (선택)</label>
+        <input type="text" id="f-memo" placeholder="특이사항">
+      </div>
+    </div>
+    <button type="submit" class="submit">기록 추가</button>
+  </form>
+
+  <div style="margin-top:12px;color:var(--sub);font-size:12px;">
+    최근 입력 건은 <a href="view.html" style="color:var(--accent);">기록 · 캘린더</a> 페이지에서 확인할 수 있습니다.
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="storage.js"></script>
+<script>
+document.getElementById('f-date').value = todayStr();
+
+document.getElementById('f').addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  const btn = ev.target.querySelector('.submit');
+  btn.disabled = true;
+  btn.textContent = '저장 중...';
+  const entry = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+    date: document.getElementById('f-date').value,
+    site: document.getElementById('f-site').value,
+    kind: document.getElementById('f-kind').value,
+    pay: document.getElementById('f-pay').value,
+    card: document.getElementById('f-card').value,
+    rate: document.getElementById('f-rate').value,
+    limit: document.getElementById('f-limit').value.trim(),
+    memo: document.getElementById('f-memo').value.trim()
+  };
+  const ok = await store.add(entry);
+  btn.disabled = false;
+  btn.textContent = '기록 추가';
+  if(ok){
+    showToast('기록이 추가되었습니다');
+    document.getElementById('f-limit').value = '';
+    document.getElementById('f-memo').value = '';
+  }else{
+    showToast('저장에 실패했습니다');
+  }
+});
+</script>
+</body>
+</html>
