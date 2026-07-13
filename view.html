@@ -160,7 +160,7 @@ function renderList(){
   const cardOrder = ['신한','국민','삼성','롯데','현대','비씨','농협','하나','우리'];
   const rateOrder = ['5%','7%','8%','10%'];
   const kindOrder = ['전사','상품별'];
-  const payOrder = ['카카오페이','토스페이','결합없음'];
+  const payOrder = ['카카오페이','토스페이','GS Pay','결합없음'];
   const idx = (arr, v) => { const i = arr.indexOf(v); return i === -1 ? 999 : i; };
 
   const cmp = (a, b) => {
@@ -207,7 +207,7 @@ function renderList(){
     html += '<td>' + escapeHtml(r.date) + '</td>';
     html += '<td>' + escapeHtml(r.site) + '</td>';
     html += '<td><span class="tag ' + (r.kind === '전사' ? 'kind-jeonsa' : 'kind-item') + '">' + escapeHtml(r.kind) + '</span></td>';
-    html += '<td>' + (r.pay === '카카오페이' ? '<span class="tag pay-kakao">카카오페이</span>' : r.pay === '토스페이' ? '<span class="tag pay-toss">토스페이</span>' : '결합없음') + '</td>';
+    html += '<td>' + (r.pay === '카카오페이' ? '<span class="tag pay-kakao">카카오페이</span>' : r.pay === '토스페이' ? '<span class="tag pay-toss">토스페이</span>' : r.pay === 'GS Pay' ? '<span class="tag pay-gs">GS Pay</span>' : '결합없음') + '</td>';
     html += '<td>' + escapeHtml(r.card) + '</td>';
     html += '<td>' + escapeHtml(r.rate) + '</td>';
     html += '<td>' + (r.limit ? escapeHtml(r.limit) : '-') + '</td>';
@@ -307,7 +307,7 @@ function renderCalendar(){
     // 빈 셀 채우기
     while(chunk.length < 7) chunk.push(null);
 
-    const payPrefix = p => p === '카카오페이' ? 'KP' : (p === '토스페이' ? 'TP' : '');
+    const payPrefix = p => p === '카카오페이' ? 'KP' : (p === '토스페이' ? 'TP' : (p === 'GS Pay' ? 'GP' : ''));
     const cardClass = {
       '신한':'card-shinhan','국민':'card-kb','삼성':'card-samsung',
       '롯데':'card-lotte','현대':'card-hyundai','비씨':'card-bc',
