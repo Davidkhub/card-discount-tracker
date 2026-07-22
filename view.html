@@ -290,42 +290,49 @@ function renderCalendar(){
     const dayEntries = entries.filter(e => e.site === site && e.date === dateStr);
     dayData.push({
       day: d,
-      dow: dow[new Date(year, month-1, d).getDay()],
       jeonsa: dayEntries.filter(e => e.kind === '전사'),
       item: dayEntries.filter(e => e.kind === '상품별')
     });
   }
 
-  // 7일씩 묶기
+  // 요일 정렬: 1일의 요일에 맞춰 앞부분 빈 칸으로 패딩
+  const firstDow = new Date(year, month-1, 1).getDay();
+  const cells = [];
+  for(let i = 0; i < firstDow; i++) cells.push(null);
+  cells.push.apply(cells, dayData);
+  while(cells.length % 7 !== 0) cells.push(null);
+
+  // 주 단위로 묶기
   const chunks = [];
-  for(let i = 0; i < dayData.length; i += 7){
-    chunks.push(dayData.slice(i, i+7));
+  for(let i = 0; i < cells.length; i += 7){
+    chunks.push(cells.slice(i, i+7));
   }
 
+  const payPrefix = p => p === '카카오페이' ? 'KP' : (p === '토스페이' ? 'TP' : (p === 'GS Pay' ? 'GP' : ''));
+  const cardClass = {
+    '신한':'card-shinhan','국민':'card-kb','삼성':'card-samsung',
+    '롯데':'card-lotte','현대':'card-hyundai','비씨':'card-bc',
+    '농협':'card-nh','하나':'card-hana','우리':'card-woori'
+  };
+  const lineClass = (row, card) => 'cal-line ' + row + ' ' + (cardClass[card] || '');
+
   let html = '';
+
+  // 요일 헤더 (고정)
+  html += '<table class="cal-table cal-header">';
+  html += '<tr><td class="cal-label">요일</td>';
+  dow.forEach(d => {
+    html += '<td class="cal-dow">' + d + '</td>';
+  });
+  html += '</tr></table>';
+
+  // 주별 테이블
   chunks.forEach(chunk => {
-    // 빈 셀 채우기
-    while(chunk.length < 7) chunk.push(null);
-
-    const payPrefix = p => p === '카카오페이' ? 'KP' : (p === '토스페이' ? 'TP' : (p === 'GS Pay' ? 'GP' : ''));
-    const cardClass = {
-      '신한':'card-shinhan','국민':'card-kb','삼성':'card-samsung',
-      '롯데':'card-lotte','현대':'card-hyundai','비씨':'card-bc',
-      '농협':'card-nh','하나':'card-hana','우리':'card-woori'
-    };
-    const lineClass = (row, card) => 'cal-line ' + row + ' ' + (cardClass[card] || '');
-
     html += '<table class="cal-table">';
     // 날짜 행
     html += '<tr><td class="cal-label">날짜</td>';
     chunk.forEach(c => {
       html += '<td class="cal-daynum">' + (c ? c.day + '일' : '') + '</td>';
-    });
-    html += '</tr>';
-    // 요일 행
-    html += '<tr><td class="cal-label">요일</td>';
-    chunk.forEach(c => {
-      html += '<td class="cal-dow">' + (c ? c.dow : '') + '</td>';
     });
     html += '</tr>';
     // 전사 행
