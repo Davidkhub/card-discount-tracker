@@ -56,6 +56,10 @@ tr:last-child td{border-bottom:none;}
 .empty{color:var(--sub);font-size:13px;text-align:center;padding:30px 0;}
 
 .cal-table{table-layout:fixed;margin-bottom:12px;}
+.cal-table.cal-header{margin-bottom:2px;}
+.cal-table.cal-header td.cal-dow{background:#F1EEE6;font-weight:700;font-size:12px;padding:8px 4px;}
+.cal-table td:nth-child(2){color:#D9534F;}
+.cal-table td:nth-child(8){color:#4A6ABF;}
 .cal-table td{vertical-align:top;text-align:center;font-size:12px;padding:6px 4px;}
 .cal-daynum{font-weight:700;font-size:13px;}
 .cal-dow{color:var(--sub);font-size:11px;}
