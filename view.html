@@ -252,36 +252,67 @@ function renderCalendar(){
   const daysInMonth = new Date(year, month, 0).getDate();
   const dow = ['일','월','화','수','목','금','토'];
 
-  // 메인카드사 정의 (쇼핑몰별 추가 카드 포함)
+  // 메인카드사 정의
   const baseMain = ['신한','삼성','국민'];
   const mallExtra = {'롯데홈쇼핑':'롯데','Hmall':'현대','현대홈쇼핑':'현대'};
-  const mainCards = mallExtra[site] ? baseMain.concat([mallExtra[site]]) : baseMain;
+  const extraCard = mallExtra[site];
 
-  // 이번 달 메인카드사 전사 행사 필터링
+  // 이번 달 해당 쇼핑몰의 전사 행사
   const monthPrefix = year + '-' + String(month).padStart(2,'0');
-  const mainEvents = entries.filter(e =>
+  const siteEvents = entries.filter(e =>
     e.site === site &&
     e.date.startsWith(monthPrefix) &&
-    e.kind === '전사' &&
-    mainCards.indexOf(e.card) !== -1
+    e.kind === '전사'
   );
-  const totalCount = new Set(mainEvents.map(e => e.date)).size;
-  const totalRatio = daysInMonth ? Math.round(totalCount / daysInMonth * 100) : 0;
-  const rates = ['5%','7%','8%','10%'];
-  const rateDays = rates.map(r => ({
-    rate: r,
-    days: new Set(mainEvents.filter(e => e.rate === r).map(e => e.date)).size
-  }));
+
+  const computeStats = (cardSet) => {
+    const events = siteEvents.filter(e => cardSet.indexOf(e.card) !== -1);
+    const totalCount = new Set(events.map(e => e.date)).size;
+    const totalRatio = daysInMonth ? Math.round(totalCount / daysInMonth * 100) : 0;
+    const rateDays = ['5%','7%','8%','10%'].map(r => ({
+      rate: r,
+      days: new Set(events.filter(e => e.rate === r).map(e => e.date)).size
+    }));
+    return { totalCount, totalRatio, rateDays };
+  };
+
+  const groups = [];
+  if(extraCard){
+    groups.push({label: extraCard + '카드 포함', cards: baseMain.concat([extraCard]), stats: computeStats(baseMain.concat([extraCard]))});
+    groups.push({label: extraCard + '카드 불포함', cards: baseMain, stats: computeStats(baseMain)});
+  }else{
+    groups.push({label: null, cards: baseMain, stats: computeStats(baseMain)});
+  }
+
+  const renderStats = (g) => {
+    let h = '<div class="cal-summary-total"><span class="stat-val-big">' + g.stats.totalRatio + '%</span> <span class="cal-summary-note">(' + g.stats.totalCount + '일 / ' + daysInMonth + '일)</span></div>';
+    h += '<div class="cal-summary-rows">';
+    g.stats.rateDays.forEach(s => {
+      h += '<div class="stat-row"><span class="stat-rate">' + s.rate + '</span> <span class="stat-val">' + s.days + '일</span></div>';
+    });
+    h += '</div>';
+    return h;
+  };
 
   let summaryHtml = '<div class="cal-summary">';
-  summaryHtml += '<div class="cal-summary-title">메인카드사 행사 비중';
-  summaryHtml += '<span class="cal-summary-note">(' + mainCards.join(', ') + ' / ' + daysInMonth + '일 기준)</span></div>';
-  summaryHtml += '<div class="cal-summary-total"><span class="stat-val-big">' + totalRatio + '%</span> <span class="cal-summary-note">(' + totalCount + '일 / ' + daysInMonth + '일)</span></div>';
-  summaryHtml += '<div class="cal-summary-rows">';
-  rateDays.forEach(s => {
-    summaryHtml += '<div class="stat-row"><span class="stat-rate">' + s.rate + '</span> <span class="stat-val">' + s.days + '일</span></div>';
-  });
-  summaryHtml += '</div></div>';
+  if(groups.length === 1){
+    const g = groups[0];
+    summaryHtml += '<div class="cal-summary-title">메인카드사 행사 비중';
+    summaryHtml += '<span class="cal-summary-note">(' + g.cards.join(', ') + ' / ' + daysInMonth + '일 기준)</span></div>';
+    summaryHtml += renderStats(g);
+  }else{
+    summaryHtml += '<div class="cal-summary-title">메인카드사 행사 비중';
+    summaryHtml += '<span class="cal-summary-note">(' + daysInMonth + '일 기준)</span></div>';
+    summaryHtml += '<div class="cal-summary-groups">';
+    groups.forEach(g => {
+      summaryHtml += '<div class="cal-summary-group">';
+      summaryHtml += '<div class="cal-summary-group-title">' + g.label + ' <span class="cal-summary-note">(' + g.cards.join(', ') + ')</span></div>';
+      summaryHtml += renderStats(g);
+      summaryHtml += '</div>';
+    });
+    summaryHtml += '</div>';
+  }
+  summaryHtml += '</div>';
   summaryEl.innerHTML = summaryHtml;
 
   const dayData = [];
