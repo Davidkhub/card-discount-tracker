@@ -265,6 +265,7 @@ function renderCalendar(){
     e.kind === '전사'
   );
 
+  const rateRank = {'5%':1,'7%':2,'8%':3,'10%':4};
   const computeStats = (cardSet, payMode) => {
     let events = siteEvents.filter(e => cardSet.indexOf(e.card) !== -1);
     if(payMode === 'exclude'){
@@ -272,11 +273,22 @@ function renderCalendar(){
       events = events.filter(e => !e.pay || e.pay === '결합없음');
     }
     // payMode === 'include' 이면 전체(일반+간편) 그대로
-    const totalCount = new Set(events.map(e => e.date)).size;
+
+    // 날짜별로 그 날의 최고 할인율 하나만 대표로 선정
+    const bestByDate = {};
+    events.forEach(e => {
+      const cur = bestByDate[e.date];
+      if(!cur || (rateRank[e.rate]||0) > (rateRank[cur]||0)){
+        bestByDate[e.date] = e.rate;
+      }
+    });
+    const repDates = Object.keys(bestByDate);
+
+    const totalCount = repDates.length;
     const totalRatio = daysInMonth ? Math.round(totalCount / daysInMonth * 100) : 0;
     const rateDays = ['5%','7%','8%','10%'].map(r => ({
       rate: r,
-      days: new Set(events.filter(e => e.rate === r).map(e => e.date)).size
+      days: repDates.filter(d => bestByDate[d] === r).length
     }));
     return { totalCount, totalRatio, rateDays };
   };
