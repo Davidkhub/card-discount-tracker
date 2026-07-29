@@ -265,58 +265,28 @@ function renderCalendar(){
     e.kind === '전사'
   );
 
-  const rateRank = {'5%':1,'7%':2,'8%':3,'10%':4};
-  const computeStats = (cardSet, payMode) => {
-    let events = siteEvents.filter(e => cardSet.indexOf(e.card) !== -1);
-    if(payMode === 'exclude'){
-      // 간편결제 결합 제외: 일반결제만
-      events = events.filter(e => !e.pay || e.pay === '결합없음');
-    }
-    // payMode === 'include' 이면 전체(일반+간편) 그대로
-
-    // 날짜별로 그 날의 최고 할인율 하나만 대표로 선정
-    const bestByDate = {};
-    events.forEach(e => {
-      const cur = bestByDate[e.date];
-      if(!cur || (rateRank[e.rate]||0) > (rateRank[cur]||0)){
-        bestByDate[e.date] = e.rate;
-      }
-    });
-    const repDates = Object.keys(bestByDate);
-
-    const totalCount = repDates.length;
+  const computeStats = (cardSet) => {
+    // 간편결제 결합(KP/TP/GP) 행사는 제외, 일반결제만 카운트
+    const events = siteEvents.filter(e =>
+      cardSet.indexOf(e.card) !== -1 &&
+      (!e.pay || e.pay === '결합없음')
+    );
+    const totalCount = new Set(events.map(e => e.date)).size;
     const totalRatio = daysInMonth ? Math.round(totalCount / daysInMonth * 100) : 0;
     const rateDays = ['5%','7%','8%','10%'].map(r => ({
       rate: r,
-      days: repDates.filter(d => bestByDate[d] === r).length
+      days: new Set(events.filter(e => e.rate === r).map(e => e.date)).size
     }));
     return { totalCount, totalRatio, rateDays };
   };
 
-  // 카드 구성 목록 (extraCard 있으면 포함/제외 2가지, 없으면 1가지)
-  const cardVariants = [];
-  if(extraCard){
-    cardVariants.push({suffix: ' · ' + extraCard + '카드 포함', cards: baseMain.concat([extraCard])});
-    cardVariants.push({suffix: ' · ' + extraCard + '카드 제외', cards: baseMain});
-  }else{
-    cardVariants.push({suffix: '', cards: baseMain});
-  }
-
-  // 결제 축: 간편결제 결합 포함(전체) / 제외(일반만)
-  const payModes = [
-    {label: '간편결제 결합 포함', mode: 'include'},
-    {label: '간편결제 결합 제외', mode: 'exclude'}
-  ];
   const groups = [];
-  cardVariants.forEach(v => {
-    payModes.forEach(pm => {
-      groups.push({
-        label: pm.label + v.suffix,
-        cards: v.cards,
-        stats: computeStats(v.cards, pm.mode)
-      });
-    });
-  });
+  if(extraCard){
+    groups.push({label: extraCard + '카드 포함', cards: baseMain.concat([extraCard]), stats: computeStats(baseMain.concat([extraCard]))});
+    groups.push({label: extraCard + '카드 제외', cards: baseMain, stats: computeStats(baseMain)});
+  }else{
+    groups.push({label: null, cards: baseMain, stats: computeStats(baseMain)});
+  }
 
   const renderStats = (g) => {
     let h = '<div class="cal-summary-total"><span class="stat-val-big">' + g.stats.totalRatio + '%</span> <span class="cal-summary-note">(' + g.stats.totalCount + '일 / ' + daysInMonth + '일)</span></div>';
@@ -329,16 +299,23 @@ function renderCalendar(){
   };
 
   let summaryHtml = '<div class="cal-summary">';
-  summaryHtml += '<div class="cal-summary-title">메인카드사 행사 비중';
-  summaryHtml += '<span class="cal-summary-note">(' + baseMain.join(', ') + (extraCard ? ' [+' + extraCard + ']' : '') + ' / ' + daysInMonth + '일 기준)</span></div>';
-  summaryHtml += '<div class="cal-summary-groups">';
-  groups.forEach(g => {
-    summaryHtml += '<div class="cal-summary-group">';
-    summaryHtml += '<div class="cal-summary-group-title">' + g.label + ' <span class="cal-summary-note">(' + g.cards.join(', ') + ')</span></div>';
+  if(groups.length === 1){
+    const g = groups[0];
+    summaryHtml += '<div class="cal-summary-title">메인카드사 행사 비중';
+    summaryHtml += '<span class="cal-summary-note">(' + g.cards.join(', ') + ' / 일반결제 / ' + daysInMonth + '일 기준)</span></div>';
     summaryHtml += renderStats(g);
+  }else{
+    summaryHtml += '<div class="cal-summary-title">메인카드사 행사 비중';
+    summaryHtml += '<span class="cal-summary-note">(일반결제 / ' + daysInMonth + '일 기준)</span></div>';
+    summaryHtml += '<div class="cal-summary-groups">';
+    groups.forEach(g => {
+      summaryHtml += '<div class="cal-summary-group">';
+      summaryHtml += '<div class="cal-summary-group-title">' + g.label + ' <span class="cal-summary-note">(' + g.cards.join(', ') + ')</span></div>';
+      summaryHtml += renderStats(g);
+      summaryHtml += '</div>';
+    });
     summaryHtml += '</div>';
-  });
-  summaryHtml += '</div>';
+  }
   summaryHtml += '</div>';
   summaryEl.innerHTML = summaryHtml;
 
